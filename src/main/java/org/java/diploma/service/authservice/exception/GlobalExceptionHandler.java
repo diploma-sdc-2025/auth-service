@@ -1,12 +1,9 @@
 package org.java.diploma.service.authservice.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,9 +13,31 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // Error messages
+    private static final String ERROR_VALIDATION_FAILED = "Validation failed";
+    private static final String ERROR_INVALID_REQUEST = "Invalid request";
+    private static final String ERROR_INVALID_STATE = "Invalid state";
+    private static final String ERROR_INTERNAL_SERVER = "Internal server error";
+    private static final String ERROR_UNEXPECTED = "An unexpected error occurred";
+    private static final String ERROR_INVALID_VALUE = "Invalid value";
+    private static final String ERROR_AUTHENTICATION_FAILED = "Authentication failed";
+    private static final String ERROR_USER_EXISTS = "User already exists";
+    private static final String ERROR_INVALID_TOKEN = "Invalid token";
+    private static final String ERROR_USER_INACTIVE = "User inactive";
+
+    // Log messages
+    private static final String LOG_VALIDATION_ERROR = "Validation error at {}: {}";
+    private static final String LOG_ILLEGAL_ARGUMENT = "Illegal argument at {}: {}";
+    private static final String LOG_ILLEGAL_STATE = "Illegal state at {}: {}";
+    private static final String LOG_INTERNAL_ERROR = "Internal server error at {}: {}";
+    private static final String LOG_AUTH_EXCEPTION = "Authentication exception at {}: {}";
+    private static final String LOG_USER_EXISTS = "User already exists at {}: {}";
+    private static final String LOG_INVALID_TOKEN = "Invalid token at {}: {}";
+    private static final String LOG_USER_INACTIVE = "User inactive at {}: {}";
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleMethodArgumentNotValid(
@@ -30,80 +49,30 @@ public class GlobalExceptionHandler {
                 .stream()
                 .collect(Collectors.toMap(
                         FieldError::getField,
-                        FieldError::getDefaultMessage,
+                        error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : ERROR_INVALID_VALUE,
                         (a, b) -> a
                 ));
 
+        log.warn(LOG_VALIDATION_ERROR, request.getRequestURI(), errors);
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
-                "Validation failed",
+                ERROR_VALIDATION_FAILED,
                 errors.toString(),
                 request.getRequestURI()
         );
     }
-
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<?> handleConstraintViolation(
-            ConstraintViolationException ex,
-            HttpServletRequest request) {
-
-        return buildResponse(
-                HttpStatus.BAD_REQUEST,
-                "Validation failed",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-    }
-
-
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<?> handleBadCredentials(
-            BadCredentialsException ex,
-            HttpServletRequest request) {
-
-        return buildResponse(
-                HttpStatus.UNAUTHORIZED,
-                "Invalid credentials",
-                "Username or password is incorrect",
-                request.getRequestURI()
-        );
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<?> handleAuthentication(
-            AuthenticationException ex,
-            HttpServletRequest request) {
-
-        return buildResponse(
-                HttpStatus.UNAUTHORIZED,
-                "Authentication failed",
-                "Authentication required",
-                request.getRequestURI()
-        );
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<?> handleAccessDenied(
-            AccessDeniedException ex,
-            HttpServletRequest request) {
-
-        return buildResponse(
-                HttpStatus.FORBIDDEN,
-                "Access denied",
-                "You do not have permission to access this resource",
-                request.getRequestURI()
-        );
-    }
-
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgument(
             IllegalArgumentException ex,
             HttpServletRequest request) {
 
+        log.warn(LOG_ILLEGAL_ARGUMENT, request.getRequestURI(), ex.getMessage());
+
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
-                "Invalid request",
+                ERROR_INVALID_REQUEST,
                 ex.getMessage(),
                 request.getRequestURI()
         );
@@ -114,31 +83,90 @@ public class GlobalExceptionHandler {
             IllegalStateException ex,
             HttpServletRequest request) {
 
+        log.warn(LOG_ILLEGAL_STATE, request.getRequestURI(), ex.getMessage());
+
         return buildResponse(
                 HttpStatus.CONFLICT,
-                "Invalid state",
+                ERROR_INVALID_STATE,
                 ex.getMessage(),
                 request.getRequestURI()
         );
     }
 
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<?> handleAuthException(
+            AuthException ex,
+            HttpServletRequest request) {
+
+        log.warn(LOG_AUTH_EXCEPTION, request.getRequestURI(), ex.getMessage());
+
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                ERROR_AUTHENTICATION_FAILED,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<?> handleUserAlreadyExists(
+            UserAlreadyExistsException ex,
+            HttpServletRequest request) {
+
+        log.warn(LOG_USER_EXISTS, request.getRequestURI(), ex.getMessage());
+
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ERROR_USER_EXISTS,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<?> handleInvalidToken(
+            InvalidTokenException ex,
+            HttpServletRequest request) {
+
+        log.warn(LOG_INVALID_TOKEN, request.getRequestURI(), ex.getMessage());
+
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                ERROR_INVALID_TOKEN,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(UserInactiveException.class)
+    public ResponseEntity<?> handleUserInactive(
+            UserInactiveException ex,
+            HttpServletRequest request) {
+
+        log.warn(LOG_USER_INACTIVE, request.getRequestURI(), ex.getMessage());
+
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                ERROR_USER_INACTIVE,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneric(
             Exception ex,
             HttpServletRequest request) {
 
-        // IMPORTANT: log full stacktrace internally
-        ex.printStackTrace();
+        log.error(LOG_INTERNAL_ERROR, request.getRequestURI(), ex.getMessage(), ex);
 
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "Internal server error",
-                "An unexpected error occurred",
+                ERROR_INTERNAL_SERVER,
+                ERROR_UNEXPECTED,
                 request.getRequestURI()
         );
     }
-
 
     private ResponseEntity<ErrorResponse> buildResponse(
             HttpStatus status,

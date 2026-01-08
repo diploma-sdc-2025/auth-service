@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 
+@Slf4j
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,39 +16,50 @@ import java.time.Instant;
 @Table(
         name = "password_reset_tokens",
         indexes = {
-                @Index(name = "idx_password_reset_user_id", columnList = "user_id"),
                 @Index(name = "idx_password_reset_token_hash", columnList = "token_hash"),
-                @Index(name = "idx_password_reset_expires_at", columnList = "expires_at")
         }
 )
 public class PasswordResetToken {
+
+    private static final String COLUMN_USER_ID = "user_id";
+    private static final String COLUMN_TOKEN_HASH = "token_hash";
+    private static final String COLUMN_EXPIRES_AT = "expires_at";
+    private static final String COLUMN_CREATED_AT = "created_at";
+    private static final String COLUMN_USED_AT = "used_at";
+
+    private static final String LOG_TOKEN_CREATED = "Password reset token created for user ID: {}";
+    private static final String LOG_TOKEN_USABILITY_CHECK = "Checking token usability - Used: {}, Expired: {}";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = COLUMN_USER_ID, nullable = false)
     private User user;
 
-    @Column(name = "token_hash", nullable = false, unique = true)
+    @Column(name = COLUMN_TOKEN_HASH, nullable = false, unique = true)
     private String tokenHash;
 
-    @Column(name = "expires_at", nullable = false)
+    @Column(name = COLUMN_EXPIRES_AT, nullable = false)
     private Instant expiresAt;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = COLUMN_CREATED_AT, nullable = false)
     private Instant createdAt;
 
-    @Column(name = "used_at")
+    @Column(name = COLUMN_USED_AT)
     private Instant usedAt;
 
     @PrePersist
     void onCreate() {
         this.createdAt = Instant.now();
+        log.debug(LOG_TOKEN_CREATED, user != null ? user.getId() : null);
     }
 
     public boolean isUsable(Instant now) {
-        return usedAt == null && expiresAt.isAfter(now);
+        boolean isUsed = usedAt != null;
+        boolean isExpired = !expiresAt.isAfter(now);
+        log.debug(LOG_TOKEN_USABILITY_CHECK, isUsed, isExpired);
+        return !isUsed && !isExpired;
     }
 }

@@ -5,7 +5,7 @@
                                     expires_at TIMESTAMP NOT NULL,
                                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                     revoked_at TIMESTAMP,
-                                    replaced_by UUID,
+                                    replaced_by INTEGER,
                                     device_info VARCHAR(255),
 
                                     CONSTRAINT fk_refresh_tokens_user_id

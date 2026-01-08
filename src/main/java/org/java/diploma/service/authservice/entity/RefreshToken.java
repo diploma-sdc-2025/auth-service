@@ -4,10 +4,12 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.util.UUID;
 
+@Slf4j
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,38 +24,53 @@ import java.util.UUID;
 )
 public class RefreshToken {
 
+    private static final String COLUMN_USER_ID = "user_id";
+    private static final String COLUMN_TOKEN_HASH = "token_hash";
+    private static final String COLUMN_EXPIRES_AT = "expires_at";
+    private static final String COLUMN_CREATED_AT = "created_at";
+    private static final String COLUMN_REVOKED_AT = "revoked_at";
+    private static final String COLUMN_REPLACED_BY = "replaced_by";
+    private static final String COLUMN_DEVICE_INFO = "device_info";
+
+    private static final String LOG_TOKEN_CREATED = "Refresh token created for user ID: {}, device: {}";
+    private static final String LOG_TOKEN_ACTIVITY_CHECK = "Checking token activity - Revoked: {}, Expired: {}";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = COLUMN_USER_ID, nullable = false)
     private User user;
 
-    @Column(name = "token_hash", nullable = false, unique = true)
+    @Column(name = COLUMN_TOKEN_HASH, nullable = false, unique = true)
     private String tokenHash;
 
-    @Column(name = "expires_at", nullable = false)
+    @Column(name = COLUMN_EXPIRES_AT, nullable = false)
     private Instant expiresAt;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = COLUMN_CREATED_AT, nullable = false)
     private Instant createdAt;
 
-    @Column(name = "revoked_at")
+    @Column(name = COLUMN_REVOKED_AT)
     private Instant revokedAt;
 
-    @Column(name = "replaced_by")
-    private UUID replacedBy;
+    @Column(name = COLUMN_REPLACED_BY)
+    private Integer replacedBy;
 
-    @Column(name = "device_info")
+    @Column(name = COLUMN_DEVICE_INFO)
     private String deviceInfo;
 
     @PrePersist
     void onCreate() {
         this.createdAt = Instant.now();
+        log.debug(LOG_TOKEN_CREATED, user != null ? user.getId() : null, deviceInfo);
     }
 
     public boolean isActive(Instant now) {
-        return revokedAt == null && expiresAt.isAfter(now);
+        boolean isRevoked = revokedAt != null;
+        boolean isExpired = !expiresAt.isAfter(now);
+        log.debug(LOG_TOKEN_ACTIVITY_CHECK, isRevoked, isExpired);
+        return !isRevoked && !isExpired;
     }
 }

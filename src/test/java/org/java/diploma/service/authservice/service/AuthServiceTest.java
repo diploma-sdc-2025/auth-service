@@ -4,6 +4,10 @@ import org.java.diploma.service.authservice.dto.*;
 import org.java.diploma.service.authservice.entity.PasswordResetToken;
 import org.java.diploma.service.authservice.entity.RefreshToken;
 import org.java.diploma.service.authservice.entity.User;
+import org.java.diploma.service.authservice.exception.AuthException;
+import org.java.diploma.service.authservice.exception.InvalidTokenException;
+import org.java.diploma.service.authservice.exception.UserAlreadyExistsException;
+import org.java.diploma.service.authservice.exception.UserInactiveException;
 import org.java.diploma.service.authservice.repository.PasswordResetTokenRepository;
 import org.java.diploma.service.authservice.repository.RefreshTokenRepository;
 import org.java.diploma.service.authservice.repository.UserRepository;
@@ -21,10 +25,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -65,7 +67,7 @@ class AuthServiceTest {
         when(users.findByEmailIgnoreCase(any()))
                 .thenReturn(Optional.of(new User()));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(UserAlreadyExistsException.class,
                 () -> authService.register(
                         new RegisterRequest("a@a.com", "u", "password123")
                 ));
@@ -80,7 +82,7 @@ class AuthServiceTest {
         when(users.findByEmailIgnoreCase(any())).thenReturn(Optional.of(user));
         when(encoder.matches(any(), any())).thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(AuthException.class,
                 () -> authService.login(
                         new LoginRequest("a@a.com", "wrong", null)
                 ));
@@ -91,7 +93,7 @@ class AuthServiceTest {
         when(users.findByEmailIgnoreCase(any()))
                 .thenReturn(Optional.of(new User()));
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(UserAlreadyExistsException.class, () ->
                 authService.register(
                         new RegisterRequest("a@a.com", "username", "password123")
                 ));
@@ -106,7 +108,7 @@ class AuthServiceTest {
         when(users.findByEmailIgnoreCase(any()))
                 .thenReturn(Optional.of(user));
 
-        assertThrows(IllegalStateException.class, () ->
+        assertThrows(UserInactiveException.class, () ->
                 authService.login(
                         new LoginRequest("a@a.com", "password", null)
                 ));
@@ -123,7 +125,7 @@ class AuthServiceTest {
         when(encoder.matches(any(), any()))
                 .thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(AuthException.class, () ->
                 authService.login(
                         new LoginRequest("a@a.com", "wrong", null)
                 ));
@@ -137,7 +139,7 @@ class AuthServiceTest {
         when(refreshTokens.findByTokenHash(any()))
                 .thenReturn(Optional.of(rt));
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(InvalidTokenException.class, () ->
                 authService.refresh(
                         new RefreshRequest("token", null)
                 ));
@@ -148,7 +150,7 @@ class AuthServiceTest {
         when(resetTokens.findByTokenHash(any()))
                 .thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(InvalidTokenException.class, () ->
                 authService.resetPassword(
                         new ResetPasswordRequest("bad", "password123")
                 ));
@@ -159,7 +161,7 @@ class AuthServiceTest {
         when(refreshTokens.findByTokenHash(any()))
                 .thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(InvalidTokenException.class, () ->
                 authService.refresh(
                         new RefreshRequest("invalid", null)
                 ));
@@ -180,15 +182,15 @@ class AuthServiceTest {
     }
 
     @Test
-    void createPasswordResetToken_returnsNull_whenUserNotFound() {
+    void createPasswordResetToken_doesNothing_whenUserNotFound() {
         when(users.findByEmailIgnoreCase(any()))
                 .thenReturn(Optional.empty());
 
-        String token = authService.createPasswordResetToken(
+        authService.createPasswordResetToken(
                 new ForgotPasswordRequest("missing@test.com")
         );
 
-        assertNull(token);
+        verify(resetTokens, never()).save(any(PasswordResetToken.class));
     }
 
     @Test
@@ -199,16 +201,10 @@ class AuthServiceTest {
         when(users.findByEmailIgnoreCase(any()))
                 .thenReturn(Optional.of(user));
 
-        String raw = authService.createPasswordResetToken(
+        authService.createPasswordResetToken(
                 new ForgotPasswordRequest("a@a.com")
         );
 
-        assertNotNull(raw);
         verify(resetTokens).save(any(PasswordResetToken.class));
     }
-
-
-
-
 }
-

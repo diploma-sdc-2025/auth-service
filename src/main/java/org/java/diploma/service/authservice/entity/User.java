@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 
+@Slf4j
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,6 +22,16 @@ import java.time.Instant;
 )
 public class User {
 
+    private static final String COLUMN_PASSWORD_HASH = "password_hash";
+    private static final String COLUMN_IS_ACTIVE = "is_active";
+    private static final String COLUMN_IS_VERIFIED = "is_verified";
+    private static final String COLUMN_CREATED_AT = "created_at";
+    private static final String COLUMN_UPDATED_AT = "updated_at";
+    private static final String COLUMN_LAST_LOGIN_AT = "last_login_at";
+
+    private static final String LOG_USER_CREATED = "User created - ID: {}, username: {}, email: {}";
+    private static final String LOG_USER_UPDATED = "User updated - ID: {}, username: {}";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -30,22 +42,22 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = COLUMN_PASSWORD_HASH, nullable = false)
     private String passwordHash;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(name = COLUMN_IS_ACTIVE, nullable = false)
     private boolean active = true;
 
-    @Column(name = "is_verified", nullable = false)
+    @Column(name = COLUMN_IS_VERIFIED, nullable = false)
     private boolean verified = false;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = COLUMN_CREATED_AT, nullable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = COLUMN_UPDATED_AT, nullable = false)
     private Instant updatedAt;
 
-    @Column(name = "last_login_at")
+    @Column(name = COLUMN_LAST_LOGIN_AT)
     private Instant lastLoginAt;
 
     @PrePersist
@@ -53,10 +65,12 @@ public class User {
         Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
+        log.info(LOG_USER_CREATED, id, username, email);
     }
 
     @PreUpdate
     void onUpdate() {
         this.updatedAt = Instant.now();
+        log.debug(LOG_USER_UPDATED, id, username);
     }
 }
