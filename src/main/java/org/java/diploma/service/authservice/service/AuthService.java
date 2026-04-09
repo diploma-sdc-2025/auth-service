@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -79,6 +80,10 @@ public class AuthService {
     // Special characters
     private static final String EMAIL_INDICATOR = "@";
 
+    /** Reserved for server-created guest users (see {@link #createGuestSession()}). */
+    private static final String GUEST_USERNAME_PREFIX = "Guest-";
+    private static final String ERROR_USERNAME_RESERVED = "This username is reserved";
+
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
     private final UserSessionRepository sessions;
@@ -105,9 +110,18 @@ public class AuthService {
         this.jwt = jwt;
     }
 
+    private static boolean isGuestUser(User u) {
+        String name = u.getUsername();
+        return name != null && name.startsWith(GUEST_USERNAME_PREFIX);
+    }
+
     @Transactional
     public void register(RegisterRequest req) {
         log.info(LOG_REGISTER_START, req.email(), req.username());
+
+        if (req.username().trim().regionMatches(true, 0, GUEST_USERNAME_PREFIX, 0, GUEST_USERNAME_PREFIX.length())) {
+            throw new UserAlreadyExistsException(ERROR_USERNAME_RESERVED);
+        }
 
         users.findByEmailIgnoreCase(req.email()).ifPresent(u -> {
             log.warn(LOG_REGISTER_EMAIL_EXISTS, req.email());
@@ -168,9 +182,45 @@ public class AuthService {
         sessions.save(session);
         log.debug(LOG_LOGIN_SESSION_CREATED, user.getId());
 
-        String access = jwt.createAccessToken(user.getId(), user.getUsername());
+        String access = jwt.createAccessToken(user.getId(), user.getUsername(), isGuestUser(user));
         log.info(LOG_LOGIN_SUCCESS, user.getId(), user.getUsername());
 
+        return new AuthResponse(access, refreshRaw);
+    }
+
+    /**
+     * Creates a throwaway user and full session so matchmaking accepts a JWT without email/password.
+     */
+    @Transactional
+    public AuthResponse createGuestSession() {
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        String username = GUEST_USERNAME_PREFIX + suffix;
+        String email = "guest+" + suffix + "@guest.local";
+
+        User u = new User();
+        u.setUsername(username);
+        u.setEmail(email);
+        u.setPasswordHash(encoder.encode(TokenUtil.newOpaqueToken()));
+        users.save(u);
+
+        u.setLastLoginAt(Instant.now());
+
+        String refreshRaw = TokenUtil.newOpaqueToken();
+        String refreshHash = TokenUtil.sha256B64Url(refreshRaw);
+
+        RefreshToken rt = new RefreshToken();
+        rt.setUser(u);
+        rt.setTokenHash(refreshHash);
+        rt.setExpiresAt(Instant.now().plus(refreshTtl));
+        refreshTokens.save(rt);
+
+        UserSession session = new UserSession();
+        session.setUser(u);
+        session.setRefreshToken(rt);
+        sessions.save(session);
+
+        String access = jwt.createAccessToken(u.getId(), u.getUsername(), true);
+        log.info("Guest session created for user ID: {}, username: {}", u.getId(), u.getUsername());
         return new AuthResponse(access, refreshRaw);
     }
 
@@ -221,7 +271,7 @@ public class AuthService {
         session.setDeviceInfo(req.deviceInfo());
         sessions.save(session);
 
-        String access = jwt.createAccessToken(user.getId(), user.getUsername());
+        String access = jwt.createAccessToken(user.getId(), user.getUsername(), isGuestUser(user));
         log.info(LOG_REFRESH_SUCCESS, user.getId());
 
         return new AuthResponse(access, newRaw);

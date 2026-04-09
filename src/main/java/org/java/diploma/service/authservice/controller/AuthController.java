@@ -18,6 +18,7 @@ public class AuthController {
 
     // Swagger operation summaries
     private static final String OP_REGISTER = "Register user";
+    private static final String OP_GUEST = "Play as guest";
     private static final String OP_LOGIN = "User login";
     private static final String OP_REFRESH = "Refresh tokens";
     private static final String OP_LOGOUT = "Logout";
@@ -30,6 +31,8 @@ public class AuthController {
     // Log messages
     private static final String LOG_REGISTER_REQUEST = "Registration request received for email: {}";
     private static final String LOG_REGISTER_SUCCESS = "User registered successfully: {}";
+    private static final String LOG_GUEST_REQUEST = "Guest session request received";
+    private static final String LOG_GUEST_SUCCESS = "Guest session issued";
     private static final String LOG_LOGIN_REQUEST = "Login request received for email: {}";
     private static final String LOG_LOGIN_SUCCESS = "User logged in successfully: {}";
     private static final String LOG_REFRESH_REQUEST = "Token refresh request received";
@@ -55,6 +58,15 @@ public class AuthController {
         auth.register(req);
         log.info(LOG_REGISTER_SUCCESS, req.email());
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = OP_GUEST)
+    @PostMapping("/guest")
+    public ResponseEntity<AuthResponse> guest() {
+        log.info(LOG_GUEST_REQUEST);
+        AuthResponse response = auth.createGuestSession();
+        log.info(LOG_GUEST_SUCCESS);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = OP_LOGIN, description = LOGIN_DESCRIPTION)

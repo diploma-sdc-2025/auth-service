@@ -19,6 +19,7 @@ public class JwtService {
 
     private static final int MIN_SECRET_LENGTH = 32;
     private static final String CLAIM_USERNAME = "username";
+    private static final String CLAIM_GUEST = "guest";
 
     private static final String PROPERTY_JWT_SECRET = "${auth.jwt.secret}";
     private static final String PROPERTY_ACCESS_TTL = "${auth.jwt.access-ttl-seconds:900}";
@@ -62,6 +63,10 @@ public class JwtService {
     }
 
     public String createAccessToken(Integer userId, String username) {
+        return createAccessToken(userId, username, false);
+    }
+
+    public String createAccessToken(Integer userId, String username, boolean guest) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(accessTtlSeconds);
 
@@ -69,6 +74,7 @@ public class JwtService {
                 .issuer(issuer)
                 .subject(String.valueOf(userId))
                 .claim(CLAIM_USERNAME, username)
+                .claim(CLAIM_GUEST, guest)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .signWith(key)
