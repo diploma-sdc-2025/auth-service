@@ -2,6 +2,7 @@ package org.java.diploma.service.authservice.controller;
 
 import org.java.diploma.service.authservice.entity.User;
 import org.java.diploma.service.authservice.repository.UserRepository;
+import org.java.diploma.service.authservice.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -29,6 +30,8 @@ class UserControllerTest {
 
     @MockitoBean
     UserRepository userRepository;
+    @MockitoBean
+    JwtService jwtService;
 
     @Test
     void byIds_ok() throws Exception {

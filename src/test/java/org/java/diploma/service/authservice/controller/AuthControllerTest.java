@@ -81,7 +81,7 @@ class AuthControllerTest {
                         .content("""
                 {"refreshToken":"token"}
             """))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
     }
 
     @Test
@@ -91,7 +91,7 @@ class AuthControllerTest {
                         .content("""
                 {"email":"a@a.com"}
             """))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
     }
 
 
