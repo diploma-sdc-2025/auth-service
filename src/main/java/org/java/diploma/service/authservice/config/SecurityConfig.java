@@ -19,11 +19,12 @@ public class SecurityConfig {
     private static final String OPENAPI_DOCS_PATTERN = "/v3/api-docs/**";
     private static final String SWAGGER_UI_PATTERN = "/swagger-ui/**";
     private static final String SWAGGER_UI_HTML = "/swagger-ui.html";
+    private static final String INTERNAL_API_PATTERN = "/api/internal/**";
 
     private static final String LOG_CONFIGURING_SECURITY = "Configuring security filter chain";
     private static final String LOG_CSRF_DISABLED = "CSRF protection disabled for stateless API";
     private static final String LOG_SESSION_STATELESS = "Session management set to STATELESS";
-    private static final String LOG_PUBLIC_ENDPOINTS = "Configured public endpoints: {}, {}, {}, {}, {}";
+    private static final String LOG_PUBLIC_ENDPOINTS = "Configured public endpoints: {}, {}, {}, {}, {}, {}";
     private static final String LOG_JWT_FILTER_ADDED = "JWT authentication filter added before UsernamePasswordAuthenticationFilter";
     private static final String LOG_SECURITY_CONFIGURED = "Security filter chain configured successfully";
 
@@ -51,12 +52,13 @@ public class SecurityConfig {
                                     ACTUATOR_PATTERN,
                                     OPENAPI_DOCS_PATTERN,
                                     SWAGGER_UI_PATTERN,
-                                    SWAGGER_UI_HTML
+                                    SWAGGER_UI_HTML,
+                                    INTERNAL_API_PATTERN
                             ).permitAll()
                             .anyRequest().authenticated();
                     log.debug(LOG_PUBLIC_ENDPOINTS,
                             AUTH_API_PATTERN, ACTUATOR_PATTERN, OPENAPI_DOCS_PATTERN,
-                            SWAGGER_UI_PATTERN, SWAGGER_UI_HTML);
+                            SWAGGER_UI_PATTERN, SWAGGER_UI_HTML, INTERNAL_API_PATTERN);
                 })
                 .addFilterBefore(
                         jwtAuthenticationFilter,

@@ -60,6 +60,10 @@ public class User {
     @Column(name = COLUMN_LAST_LOGIN_AT)
     private Instant lastLoginAt;
 
+    /** Visible Elo-style rating for registered accounts; guests use the same column but UI hides it. */
+    @Column(nullable = false)
+    private int rating = 1000;
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();

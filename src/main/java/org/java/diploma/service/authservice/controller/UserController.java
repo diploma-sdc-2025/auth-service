@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.java.diploma.service.authservice.dto.UserPublicResponse;
+import org.java.diploma.service.authservice.entity.User;
 import org.java.diploma.service.authservice.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,8 +50,14 @@ public class UserController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At most " + MAX_IDS + " ids allowed");
         }
         List<UserPublicResponse> out = new ArrayList<>();
-        users.findAllById(distinct).forEach(u -> out.add(new UserPublicResponse(u.getId(), u.getUsername())));
+        users.findAllById(distinct).forEach(u -> out.add(toPublic(u)));
         log.debug(LOG_BY_IDS, out.size(), distinct.size());
         return out;
+    }
+
+    private static UserPublicResponse toPublic(User u) {
+        String name = u.getUsername();
+        boolean guest = name != null && name.startsWith("Guest-");
+        return new UserPublicResponse(u.getId(), name, u.getRating(), guest);
     }
 }

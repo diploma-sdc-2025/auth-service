@@ -40,12 +40,14 @@ class UserControllerTest {
         u1.setUsername("alice");
         u1.setEmail("a@x.com");
         u1.setPasswordHash("x");
+        u1.setRating(1500);
 
         User u2 = new User();
         u2.setId(2);
         u2.setUsername("bob");
         u2.setEmail("b@x.com");
         u2.setPasswordHash("y");
+        u2.setRating(1400);
 
         when(userRepository.findAllById(any())).thenReturn(List.of(u1, u2));
 
@@ -55,7 +57,11 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].username").value("alice"))
-                .andExpect(jsonPath("$[1].username").value("bob"));
+                .andExpect(jsonPath("$[0].rating").value(1500))
+                .andExpect(jsonPath("$[0].guest").value(false))
+                .andExpect(jsonPath("$[1].username").value("bob"))
+                .andExpect(jsonPath("$[1].rating").value(1400))
+                .andExpect(jsonPath("$[1].guest").value(false));
     }
 
     @Test
