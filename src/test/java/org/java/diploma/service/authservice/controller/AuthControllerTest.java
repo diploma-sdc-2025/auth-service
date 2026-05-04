@@ -94,6 +94,35 @@ class AuthControllerTest {
                 .andExpect(status().isNoContent());
     }
 
+    @Test
+    void guest_ok() throws Exception {
+        when(authService.createGuestSession())
+                .thenReturn(new AuthResponse("guest-access", "guest-refresh"));
+
+        mockMvc.perform(post("/api/auth/guest")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("guest-access"));
+    }
+
+    @Test
+    void resetPassword_ok() throws Exception {
+        mockMvc.perform(post("/api/auth/password/reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                {"token":"abc","newPassword":"password123"}
+            """))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void resetPassword_validationFail() throws Exception {
+        mockMvc.perform(post("/api/auth/password/reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
 
 }
 
