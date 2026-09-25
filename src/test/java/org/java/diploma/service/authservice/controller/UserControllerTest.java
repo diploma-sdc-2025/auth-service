@@ -65,6 +65,20 @@ class UserControllerTest {
     }
 
     @Test
+    void byIds_includesFillOpponentWithoutDatabaseRow() throws Exception {
+        when(userRepository.findAllById(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/users/by-ids")
+                        .param("ids", "1000001")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1_000_001))
+                .andExpect(jsonPath("$[0].username").value("Mira"))
+                .andExpect(jsonPath("$[0].rating").value(1016))
+                .andExpect(jsonPath("$[0].guest").value(false));
+    }
+
+    @Test
     void byIds_empty() throws Exception {
         mockMvc.perform(get("/api/users/by-ids").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

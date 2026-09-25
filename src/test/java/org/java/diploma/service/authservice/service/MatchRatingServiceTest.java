@@ -84,6 +84,22 @@ class MatchRatingServiceTest {
     }
 
     @Test
+    void applyMatchOutcomeUpdatesHumanAndSkipsMissingFillOpponent() {
+        User human = new User();
+        human.setId(42);
+        human.setUsername("kon");
+        human.setRating(1000);
+        when(users.findById(42)).thenReturn(Optional.of(human));
+        when(users.findById(1_000_001)).thenReturn(Optional.empty());
+
+        service.applyMatchOutcome(42L, 1_000_001L);
+
+        assertThat(human.getRating()).isEqualTo(1010);
+        verify(users).save(human);
+        verify(users).findById(1_000_001);
+    }
+
+    @Test
     void getRatingOrDefaultReturnsStoredRatingOrDefault() {
         User user = new User();
         user.setId(7);

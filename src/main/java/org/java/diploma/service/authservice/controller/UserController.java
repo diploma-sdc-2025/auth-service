@@ -3,6 +3,7 @@ package org.java.diploma.service.authservice.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.java.diploma.service.authservice.bot.BotPlayers;
 import org.java.diploma.service.authservice.dto.UserPublicResponse;
 import org.java.diploma.service.authservice.entity.User;
 import org.java.diploma.service.authservice.repository.UserRepository;
@@ -51,6 +52,14 @@ public class UserController {
         }
         List<UserPublicResponse> out = new ArrayList<>();
         users.findAllById(distinct).forEach(u -> out.add(toPublic(u)));
+        if (distinct.contains(BotPlayers.USER_ID)
+                && out.stream().noneMatch(u -> u.id() == BotPlayers.USER_ID)) {
+            out.add(new UserPublicResponse(
+                    BotPlayers.USER_ID,
+                    BotPlayers.USERNAME,
+                    BotPlayers.RATING,
+                    false));
+        }
         log.debug(LOG_BY_IDS, out.size(), distinct.size());
         return out;
     }
